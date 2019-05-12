@@ -1,0 +1,75 @@
+# LibManifest
+LibManifest builds a table of manifest directive values for the "addOnName" you specify.
+
+WARNING: You must be running ESO game code for the Elsweyr API (100027), or greater, for this support add-on to function correctly. While it will work with WrathStone (100026), its Elsweyr values will be invalid until 100027 is released.
+
+## What It Is
+LibManifest is a standalone support add-on that builds a table of manifest directive values from data returned by the game's "AddOnManager" and other API functions.
+
+"Standalone" means that LibManifest should not be embedded. Please load only one instance of LibManifest from the ".../Addons/" directory and use a "##DependsOn: LibManifest" directive in the manifest file for your add-on to instruct the game to verify that LibManifest is running before the game loads your add-on.
+
+## What It Does
+LibManifest contains bootstrapping code to load itself only one time.
+* LibManifest creates new global control entries whenever it has not been loaded before.
+* LibManifest fails all duplicate start up attempts that occur after its initial start up.
+* LibManifest creates a"test" table of its own directive values to verify that it is functioning correctly. You can install the "Mer TorchBug" debugging utility (e.g. \tbug LibManifest) to view an example table.
+
+## API Functions:
+###LibManifest:Create( addOnName: string )
+If a global control entry for "addOnName" exists (e.g. _G["addonName"]), this function returns a table that contains manifest directive information extracted from data that the game retains about this add-on and from information returned by other game API functions; otherwise, it returns a nil value to indicate that a control entry for "addOnName" could not be found.
+
+_Note: The "addOnName: string" syntax tells the Havok VM to fail the API call if "addOnName" does not contain a .lua alphanumeric string._
+
+#### Input:
+addOnName := a string, between 1 and 64 alphanumeric characters long, containing an add-on name (e.g. "LibManifest").
+#### Returns:
+* nil, 0 := A control entry for "addOnName" could not be found in the start up information for this character. The returned .lua table index is an invalid .lua index value.
+* table, i := 
+	table := Contains a pointer to the manifest information table for _G["addOnName"]
+	i := Contains the game's index value into the AddOnManager add-ons table for your character so you won't have to waste time and CPU cycles searching for this add-on again.
+
+## Table Layout
+This code illustrates a manifest table layout. The comment fields are informational asides and opinions.
+```
+manifest = {
+	-- These values are retrieved from existing manifest directives
+	author,			-- From the Author: directive Without any special characters
+	description,	-- From the Description: directive
+	fileName,		-- The name of this add-on's folder and manifest file
+	isEnabled,		-- ESO boolean value
+	isOutOfDate,	-- ESO boolean value
+	loadState,		-- ESO load state (i.e. loaded; not loaded)
+	title,			-- From the Title: directive without any special characters
+
+	-- These values are retrieved from 100026 manifest directives
+	addOnVersion,	-- From the AddOnVersion: directive
+	filePath,		-- Path to this add-on's folder/directory
+
+	-- These values are retrieved from 100027 manifest directives
+	isLibrary,		-- From the IsLibrary: directive
+}
+```
+
+## Example
+This code illustrates how LibManifest processes valid start up attempts and fails all duplicate start up attempts because trapping them is one way to determine who was doing what and when, which should give us the why.
+```
+
+--[[-------------------------------------------------------------------------------------------------------------------------------
+Local variables shared by multiple functions within this add-on.
+---------------------------------------------------------------------------------------------------------------------------------]]
+local ADDON_NAME = "LibManifest"
+
+--[[-------------------------------------------------------------------------------------------------------------------------------
+Bootstrap code to either load or fail this add-on.
+---------------------------------------------------------------------------------------------------------------------------------]]
+assert( not _G[ADDON_NAME], ADDON_NAME.. ": is already loaded. Do NOT load add-ons multiple times!" )
+
+local addon = {}
+_G[ADDON_NAME] = addon
+assert( _G[ADDON_NAME], ADDON_NAME.. ". The game failed to create a global control entry!" )
+
+--[[-------------------------------------------------------------------------------------------------------------------------------
+... And add-on initialization continues on from here...
+---------------------------------------------------------------------------------------------------------------------------------]]
+
+```
